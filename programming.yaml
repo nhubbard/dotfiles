@@ -1,0 +1,81 @@
+- hosts: localhost
+  remote_user: root
+  tasks:
+    - name: Update device to latest version
+      dnf:
+        name: "*"
+        state: latest
+    - name: Disable SELinux
+      selinux:
+        state: disabled
+    - name: Install Epson printer drivers
+      dnf:
+        name: epson-inkjet-printer-escpr
+        state: latest
+    - name: Install Google Chrome
+      dnf:
+        name: "https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm"
+        state: present
+    - name: Install RPMFusion Repos
+      dnf:
+        name: "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-26.noarch.rpm"
+        state: present
+      dnf:
+        name: "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-26.noarch.rpm"
+        state: present
+    - name: Add and install Spotify
+      command: dnf config-manager --add-repo=https://negativo17.org/repos/fedora-spotify.repo
+      dnf:
+        name: "spotify-client"
+        state: present
+    - name: Install GNOME Tweak Tool
+      dnf:
+        name: "gnome-tweak-tool"
+        state: present
+    - name: Install VLC
+      dnf:
+        name: vlc
+        state: present
+    - name: Install Java
+      dnf:
+        name: java-openjdk icedtea-web
+        state: present
+    - name: Install GIMP
+      dnf:
+        name: gimp
+        state: present
+    - name: Install Unzip
+      dnf:
+        name: unzip
+        state: present
+    - name: Install Plex Media Player
+      command: dnf copr enable jleroy/PlexMediaPlayer
+      dnf:
+        name: plexmediaplayer
+        state: present
+    - name: Install TLP
+      dnf:
+        name: tlp
+        state: present
+      systemd:
+        name: tlp.service
+        state: started
+        enabled: True
+    # From Fedy
+    - name: Add and install Paper Icon Theme
+      command: dnf config-manager --add-repo=https://download.opensuse.org/repositories/home:snwh:paper/Fedora_25/home:snwh:paper.repo
+      dnf:
+        name: "paper-icon-theme"
+        state: present
+    - name: Install ZSH
+      dnf:
+        name: zsh
+        state: present
+      user: name=root shell=/usr/bin/zsh
+      user: name={{ ansible_env.USER }} shell=/usr/bin/zsh
+    - name: Install Sublime Text
+      command: rpm -v --import https://download.sublimetext.com/sublimehq-rpm-pub.gpg
+      command: dnf config-manager --add-repo https://download.sublimetext.com/rpm/stable/x86_64/sublime-text.repo
+      dnf:
+        name: sublime-text
+        state: latest

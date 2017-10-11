@@ -1,0 +1,87 @@
+# Default setup guide for stock laptop on Fedora 26.
+---
+- hosts: laptop
+  remote_user: root
+  tasks:
+    - name: Update device to latest version
+      dnf:
+        name: "*"
+        state: latest
+    - name: Change SELinux status
+      dnf:
+        name: libselinux-python
+        state: latest
+      dnf:
+        name: libselinux-python3
+        state: latest
+      selinux:
+        state: disabled
+    - name: Install Epson printer drivers
+      dnf:
+        name: epson-inkjet-printer-escpr
+        state: latest
+    - name: Install LibreOffice on device
+      dnf:
+        name: "libreoffice*"
+        state: latest
+    - name: Install Google Chrome
+      dnf:
+        name: "https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm"
+        state: present
+    - name: Install RPMFusion Repos
+      dnf:
+        name: "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-26.noarch.rpm"
+        state: present
+      dnf:
+        name: "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-26.noarch.rpm"
+        state: present
+    - name: Add and install Spotify
+      command: dnf config-manager --add-repo=https://negativo17.org/repos/fedora-spotify.repo
+      dnf:
+        name: "spotify-client"
+        state: present
+    - name: Install GNOME Tweak Tool
+      dnf:
+        name: "gnome-tweak-tool"
+        state: present
+    - name: Install VLC
+      dnf:
+        name: vlc
+        state: present
+    - name: Install Java
+      dnf:
+        name: java-openjdk icedtea-web
+        state: present
+    - name: Install GIMP
+      dnf:
+        name: gimp
+        state: present
+    - name: Install Simple Scan
+      dnf:
+        name: simple-scan
+        state: present
+    - name: Install Unzip
+      dnf:
+        name: unzip
+        state: present
+    - name: Set up Automatic Updates
+      dnf:
+        name: dnf-automatic
+        state: present
+      systemd:
+        name: dnf-automatic-install.timer
+        state: started
+        enabled: True
+    - name: Install Plex Media Player
+      command: dnf copr enable jleroy/PlexMediaPlayer
+      dnf:
+        name: plexmediaplayer
+        state: present
+    - name: Install TLP
+      dnf:
+        name: tlp
+        state: present
+      systemd:
+        name: tlp.service
+        state: started
+        enabled: True
