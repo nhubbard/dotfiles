@@ -1,0 +1,116 @@
+# Install Wowza Streaming Engine on CentOS
+#
+# This will install Oracle Java, configure
+# SELinux, configure the firewall, install
+# a SystemD unit file, and slim down the
+# boot units to speed up boot and improve
+# performance.
+#
+# Wowza is a manual installation without
+# using Docker. Sales will provide a RPM
+# if you email them at sales@wowza.com
+%YAML 1.2
+---
+- hosts: wowza
+  remote_user: udjadmin
+  sudo: yes
+  vars:
+    # Update this URL each time you need to
+    # increment the version of Java on the system.
+    java_url: http://download.oracle.com/otn-pub/java/jdk/8u172-b11/a58eab1ec242421181065cdc37240b08/jre-8u172-linux-x64.tar.gz
+    # This is the folder to download any files to.
+    tempdir: /tmp
+    # Set this to the name of the extracted file.
+    java_name: "/opt/jre1.8.0_172"
+    # Set this to the name of the archive to be downloaded.
+    java_archive: "{{tempdir}}/jre-8u172-linux-x64.tar.gz"
+  tasks:
+    # PART Ø: Dependencies
+    # Install SELinux and FirewallD Python libraries
+    # for Ansible.
+    - name: Install SELinux and FirewallD Python bindings
+      yum:
+        name: "{{item.name}}"
+        state: latest
+        loop:
+          - {name: "libselinux-python"}
+          - {name: "python-firewall"}
+    - name: Upgrade System to Latest Version
+      yum:
+        name: "*"
+        state: latest
+    # PART I: Java Installation
+    # This downloads Java from Oracle.
+    - name: Download Oracle Java
+      command: "curl -jkL -b 'oraclelicense=accept-securebackup-cookie' -o {{tempdir}}/java8.rpm {{java_url}}"
+    # This unpacks Java from the archive downloaded.
+    - name: Unpack Java
+      command: "tar xfz {{java_archive}} -C {{java_name}} creates={{java_name}}"
+    # Fix directory ownership.
+    - name: Fix Directory Ownership
+      file: state=directory path={{java_name}} owner=root group=root recurse=yes
+    # Make Java available for the system to use.
+    - name: Update Java Alternatives Configuration
+      alternatives:
+        name: java
+        link: "/usr/bin/java"
+        path: "{{java_name}}/bin/java"
+        priority: 2000
+    # Clean up after Java installation.
+    - name: Clean Up Java Files
+      file: state=absent path={{java_archive}}
+    # PART II: Pre-Install Requirements for Wowza
+    # Set up software firewall configuration.
+    - name: Set FirewallD configuration
+      firewalld:
+        port: "{{item.port}}"
+        permanent: true
+        state: enabled
+        zone: public
+        loop:
+          - {port: "1935/tcp"}
+          - {port: "8084/tcp"}
+          - {port: "8085/tcp"}
+          - {port: "8086/tcp"}
+          - {port: "8087/tcp"}
+          - {port: "8088/tcp"}
+          - {port: "80/tcp"}
+    # Disable SELinux. Wowza does not support it.
+    - name: Disable SELinux
+      selinux:
+        policy: targeted
+        state: permissive
+    # PART III: Slim Down Boot Process
+    # Remove Postfix and ChronyD
+    - name: Remove Unnecessary Services
+      systemd:
+        name: "{{item.name}}"
+        state: stopped
+        enabled: no
+      loop:
+        - {name: "postfix"}
+        - {name: "chronyd"}
+    - name: Uninstall Unnecessary Packages
+      yum:
+        name: "{{item.name}}"
+        state: absent
+      loop:
+        - {name: "postfix"}
+        - {name: "chrony"}
+    # Replace ChronyD with NTP (more lightweight)
+    - name: Install NTP
+      yum:
+        name: "ntp"
+        state: latest
+    - name: Allow NTP through FirewallD
+      firewalld:
+        service: ntp
+        permanent: true
+        state: enabled
+    - name: Enable NTPd
+      systemd:
+        name: "ntpd"
+        state: started
+        enabled: yes
+    # All done! Wowza must be installed manually without
+    # an RPM.
